@@ -1,0 +1,43 @@
+{
+  "name": "production-ready-backend-template",
+  "version": "1.0.0",
+  "description": "This template can be cloned to quickstart the projects. It contains all the necessary features regarding authentication for projects.",
+  "keywords": [
+    "auth",
+    "production",
+    "template"
+  ],
+  "license": "ISC",
+  "author": "Sarthak-Jejurkar",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc -w",
+    "migrate:dev": "prisma migrate dev",
+    "generate": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.8.0",
+    "bcrypt": "^6.0.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "google-auth-library": "^10.7.0",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.9.3",
+    "prisma": "^7.8.0",
+    "typescript": "^6.0.3"
+  }
+}
