@@ -8,7 +8,7 @@ This repository contains end-to-end backend implementation of Authentication whi
 - User Register with Email Verification
 - User Login 
 - Auth Provider Sign in  
-- Password Hashing 
+- Password Hashing
 - Logout 
 - Access Token
 - Refresh Token
@@ -39,6 +39,10 @@ npm i express cors dotenv cookie-parser jsonwebtoken bcrypt zod @prisma/client g
 
 # Development dependencies
 npm i -D typescript @types/node @types/express @types/cors @types/cookie-parser @types/jsonwebtoken @types/bcrypt prisma
+
+# Rate Limiting dependencies
+npm install ioredis rate-limiter-flexible
+npm install -D @types/ioredis
 ```
 
 ### 3. TypeScript Configuration

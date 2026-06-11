@@ -4,10 +4,15 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 
+import { globalRateLimiter } from "./middleware/globalRateLimiter.js";
+
 import userRoutes from "./modules/user/user.routes.js";
 
 const app = express();
+
 app.use(helmet());
+app.use(globalRateLimiter);
+
 const PORT = process.env.PORT ?? 3000;
 
 app.use(
