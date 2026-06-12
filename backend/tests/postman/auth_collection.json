@@ -1,0 +1,293 @@
+{
+  "info": {
+    "_postman_id": "auth-template-collection",
+    "name": "Auth Template API",
+    "description": "Complete Postman collection for the production-ready auth template. Import this file into Postman and set the `baseUrl` variable to your server URL.\n\nCollection variables:\n- baseUrl: http://localhost:3000\n- accessToken: (auto-set by login/google-login)\n- refreshToken: (auto-set by login/google-login)\n- sessionId: (auto-set by get-sessions)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl",      "value": "http://localhost:3000", "type": "string" },
+    { "key": "accessToken",  "value": "",                      "type": "string" },
+    { "key": "refreshToken", "value": "",                      "type": "string" },
+    { "key": "sessionId",    "value": "",                      "type": "string" },
+    { "key": "fileKey",      "value": "",                      "type": "string" },
+    { "key": "uploadUrl",    "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));", "pm.test('status ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "Auth — Public",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"Secure@123\"\n}"
+            }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('status 201', () => pm.response.to.have.status(201));", "pm.test('has user', () => pm.expect(pm.response.json()).to.have.property('user'));"] } }]
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/verify-email",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<TOKEN_FROM_EMAIL>\"\n}"
+            }
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Resend Verification Email",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/resend-verification",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Secure@123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('accessToken', json.accessToken || '');",
+                  "// Extract refreshToken from Set-Cookie header",
+                  "const cookies = pm.response.headers.get('Set-Cookie') || '';",
+                  "const match = cookies.match(/refreshToken=([^;]+)/);",
+                  "if (match) pm.collectionVariables.set('refreshToken', match[1]);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Google Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/login/google",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"<GOOGLE_ID_TOKEN_FROM_FRONTEND>\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "header": [{ "key": "Cookie", "value": "refreshToken={{refreshToken}}" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/logout",
+            "header": [{ "key": "Cookie", "value": "refreshToken={{refreshToken}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/forgot-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/reset-password",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"<TOKEN_FROM_EMAIL>\",\n  \"password\": \"NewSecure@456\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth — Protected",
+      "item": [
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));", "pm.test('has user', () => pm.expect(pm.response.json()).to.have.property('user'));"] } }]
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/auth/profile",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Updated\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Generate Avatar Upload URL",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/api/auth/avatar/upload-url",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileName\": \"avatar.jpg\",\n  \"contentType\": \"image/jpeg\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('uploadUrl', json.uploadUrl || '');",
+                  "pm.collectionVariables.set('fileKey', json.fileKey || '');"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Upload to S3 (direct PUT)",
+          "request": {
+            "method": "PUT",
+            "url": "{{uploadUrl}}",
+            "header": [{ "key": "Content-Type", "value": "image/jpeg" }],
+            "body": {
+              "mode": "file",
+              "file": { "src": "" }
+            },
+            "description": "Replace the body with your image file. Use the uploadUrl obtained from the previous step."
+          }
+        },
+        {
+          "name": "Confirm Avatar Upload",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/api/auth/avatar",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type",  "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fileKey\": \"{{fileKey}}\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get Active Sessions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/auth/sessions",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const sessions = pm.response.json().sessions;",
+                  "if (sessions && sessions.length > 0) {",
+                  "  pm.collectionVariables.set('sessionId', sessions[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout Specific Session",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/auth/sessions/{{sessionId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }]
+          }
+        },
+        {
+          "name": "Logout All Devices",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/auth/sessions",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Cookie",        "value": "refreshToken={{refreshToken}}" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

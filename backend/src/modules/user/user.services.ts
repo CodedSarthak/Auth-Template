@@ -301,10 +301,16 @@ export const UserServices = {
 
     async googleLogin(data: GoogleLoginDto) {
 
-        const ticket = await googleClient.verifyIdToken({
-            idToken: data.idToken,
-            audience: env.GOOGLE_CLIENT_ID,
-        });
+        let ticket;
+
+        try {
+            ticket = await googleClient.verifyIdToken({
+                idToken: data.idToken,
+                audience: env.GOOGLE_CLIENT_ID,
+            });
+        } catch (error) {
+            throw new UnauthorizedException("Invalid Google token.");
+        }
 
         const payload = ticket.getPayload();
         if (!payload || !payload.email) {

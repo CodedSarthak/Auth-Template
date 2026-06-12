@@ -188,9 +188,39 @@ prisma/
 | `npm run dev` | Start development server with hot reload (tsx) |
 | `npm run build` | Compile TypeScript to `./dist` |
 | `npm start` | Run compiled production build |
+| `npm test` | Run all Vitest test suites once |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests and generate an HTML coverage report |
 | `npm run migrate:dev` | Create and apply a new Prisma migration |
 | `npm run generate` | Regenerate Prisma Client after schema changes |
 | `npm run studio` | Open Prisma Studio (visual DB browser) |
+
+---
+
+## Testing
+
+This project includes a comprehensive test suite (122+ tests) built with **Vitest** and **Supertest**. 
+
+- **Unit Tests:** Located in `tests/unit/`. Covers JWT operations, bcrypt hashing, MIME validation, and utility functions.
+- **Integration Tests:** Located in `tests/integration/`. Tests all 16 endpoints end-to-end, mocking only external dependencies (Prisma, AWS, Google Auth, Resend) while keeping the real JWT and routing logic intact.
+
+To run the tests, simply execute:
+```bash
+npm test
+```
+
+---
+
+## E2E Testing & Postman
+
+In the `tests/` folder, you will find resources for manual testing and API interaction:
+
+1. **Postman Collection (`tests/postman/auth_collection.json`)**
+   - Import this JSON file into Postman to instantly get all 16 API endpoints configured.
+   - It includes automated scripts that will save your `accessToken`, `refreshToken`, `sessionId`, and `uploadUrl` as collection variables. After you log in, subsequent protected requests will automatically include your token!
+
+2. **Curl Commands (`tests/e2e/curl_commands.md`)**
+   - A reference cheat sheet containing the exact `curl` commands needed to test every route from your terminal.
 
 ---
 
