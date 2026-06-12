@@ -8,19 +8,15 @@ export async function sendEmail(
     toEmail: string,
     subject: string,
     htmlContent: string
-) {
-    try {
-        const data = await resend.emails.send({
-            from: env.FROM_EMAIL,
-            to: toEmail,
-            subject,
-            html: htmlContent,
-        });
+): Promise<void> {
+    const { error } = await resend.emails.send({
+        from: env.FROM_EMAIL,
+        to: toEmail,
+        subject,
+        html: htmlContent,
+    });
 
-        return true;
-    }
-    catch (error) {
-        console.error("❌ Error sending email:", error);
-        return false;
+    if (error) {
+        throw new Error(`Failed to send email to ${toEmail}: ${error.message}`);
     }
 }

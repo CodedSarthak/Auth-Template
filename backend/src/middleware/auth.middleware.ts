@@ -1,10 +1,8 @@
-// Use this as a middleware in routes, that needs to be protected. 
-// These routes, then can get userId from `req.user.id`
+// Use this as a middleware in routes that need to be protected.
+// These routes can then access the userId via `req.user.id`
 
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { TokenPayload } from '../utils/jwt.js';
-import { env } from '../config/getEnvVars.js';
+import { verifyAccessToken } from '../utils/jwt.js';
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
 
@@ -15,17 +13,15 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
         return res.status(401).json({ message: 'Access token missing' });
     }
 
-    try {
-        const decoded: TokenPayload = jwt.verify(token, env.JWT_ACCESS_SECRET) as TokenPayload;
+    const decoded = verifyAccessToken(token);
 
-        req.user = {
-            id: decoded.userId
-        };
-
-        next();
-
-    }
-    catch (error) {
+    if (!decoded) {
         return res.status(403).json({ message: 'Invalid or expired access token' });
     }
+
+    req.user = {
+        id: decoded.userId
+    };
+
+    next();
 };

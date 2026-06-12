@@ -15,7 +15,7 @@ import {
     logoutSpecificSessionSchema,
 } from "./user.validation.js";
 import { env } from "../../config/getEnvVars.js";
-import { z } from "zod";
+import { parseDurationMs } from "../../utils/parseDuration.js";
 
 const cookieOptions = {
     httpOnly: true,
@@ -26,12 +26,12 @@ const cookieOptions = {
 function setAuthCookies(res: Response, accessToken: string, refreshToken: string) {
     res.cookie("accessToken", accessToken, {
         ...cookieOptions,
-        maxAge: parseInt(env.JWT_ACCESS_EXPIRATION) * 60 * 1000,
+        maxAge: parseDurationMs(env.JWT_ACCESS_EXPIRATION),
     });
 
     res.cookie("refreshToken", refreshToken, {
         ...cookieOptions,
-        maxAge: parseInt(env.JWT_REFRESH_EXPIRATION) * 60 * 60 * 1000,
+        maxAge: parseDurationMs(env.JWT_REFRESH_EXPIRATION),
     });
 }
 

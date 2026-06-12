@@ -14,10 +14,10 @@ router.post("/forgot-password", UserController.forgotPassword);
 router.post("/reset-password", UserController.resetPassword);
 
 // Refresh token
-router.post("/refresh", authenticateToken, UserController.refreshToken);
+router.post("/refresh", UserController.refreshToken);
 
 // Logout (clears current session based on cookie)
-router.post("/logout", authenticateToken, UserController.logout);
+router.post("/logout", UserController.logout);
 
 // Protected auth routes (requires valid access token)
 

@@ -2,6 +2,7 @@ import {
     FILE_CONFIG,
     ALL_ALLOWED_MIME_TYPES,
 } from "../constants/s3.fileConstants.js";
+import { BadRequestException } from "../errors/errors.js";
 
 export function validateMimeType(
     mimeType: string
@@ -11,8 +12,8 @@ export function validateMimeType(
             mimeType as (typeof ALL_ALLOWED_MIME_TYPES)[number]
         )
     ) {
-        throw new Error(
-            `Unsupported file type: ${mimeType}`
+        throw new BadRequestException(
+            `Unsupported file type: ${mimeType}. Allowed types: ${ALL_ALLOWED_MIME_TYPES.join(", ")}`
         );
     }
 }

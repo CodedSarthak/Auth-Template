@@ -5,19 +5,23 @@ import cookieParser from "cookie-parser";
 import helmet from "helmet";
 
 import { globalRateLimiter } from "./middleware/globalRateLimiter.js";
+import { requestLogger } from "./middleware/requestLogger.js";
+import { errorHandler } from "./middleware/error.middleware.js";
+import { env } from "./config/getEnvVars.js";
 
 import userRoutes from "./modules/user/user.routes.js";
 
 const app = express();
 
 app.use(helmet());
+app.use(requestLogger);
 app.use(globalRateLimiter);
 
 const PORT = process.env.PORT ?? 3000;
 
 app.use(
     cors({
-        origin: "http://localhost:5173",
+        origin: env.FRONTEND_URL,
         credentials: true,
     })
 );
@@ -43,6 +47,8 @@ app.use(
         res.status(404).json({ error: "Not found" });
     }
 );
+
+app.use(errorHandler);
 
 app.listen(PORT, () => {
     console.log(`Server listening on http://localhost:${PORT}`);

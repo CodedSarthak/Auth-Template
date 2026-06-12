@@ -45,10 +45,6 @@ export const UserRepository = {
         return await prisma.session.create({ data });
     },
 
-    async findSessionByRefreshTokenHash(refreshTokenHash: string) {
-        return await prisma.session.findFirst({ where: { refreshTokenHash } });
-    },
-
     async findActiveSessions(userId: string) {
         return await prisma.session.findMany({ where: { userId, expiresAt: { gte: new Date() } } });
     },

@@ -4,10 +4,11 @@ import { validateMimeType } from "../../utils/validateMime.js";
 import { generateFileKey } from "../../utils/s3FileKey.js";
 import { generateUploadPresignedUrl, deleteObject, checkObjectExists } from "../../utils/s3Utils.js";
 import { hashPassword, comparePassword } from "../../utils/bcrypt.js";
+import { parseDurationMs } from "../../utils/parseDuration.js";
 import { generateRandomToken } from "../../utils/token.js";
 import { sendEmail } from "../../config/email.js";
 import { env } from "../../config/getEnvVars.js";
-import { generateAccessToken, generateRefreshToken } from "../../utils/jwt.js";
+import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from "../../utils/jwt.js";
 import { AuthProvider } from "@prisma/client";
 import { googleClient } from "../../config/googleClient.js";
 import { BadRequestException, NotFoundException, ForbiddenException, ConflictException, UnauthorizedException } from "../../errors/errors.js";
@@ -117,18 +118,20 @@ export const UserServices = {
         }
 
         const accessToken = generateAccessToken({ userId: user.id });
-        const refreshToken = generateRefreshToken({ userId: user.id });
+        const refreshExpiresAt = new Date(Date.now() + parseDurationMs(env.JWT_REFRESH_EXPIRATION));
 
-        const refreshTokenHash = await hashPassword(refreshToken);
-        const refreshExpiresAt = new Date(Date.now() + parseInt(env.JWT_REFRESH_EXPIRATION) * 60 * 60 * 1000);
-
-        await UserRepository.createSession({
+        const session = await UserRepository.createSession({
             user: { connect: { id: user.id } },
-            refreshTokenHash,
+            refreshTokenHash: "pending",
             userAgent: data.agent,
             ipAddress: data.ip,
             expiresAt: refreshExpiresAt,
-        })
+        });
+
+        const refreshToken = generateRefreshToken({ userId: user.id, sessionId: session.id });
+        const refreshTokenHash = await hashPassword(refreshToken);
+
+        await UserRepository.updateSession(session.id, { refreshTokenHash });
 
         return {
             success: true,
@@ -220,7 +223,10 @@ export const UserServices = {
         const user = await UserRepository.findUserByEmail(data.email);
 
         if (!user) {
-            throw new NotFoundException("User not found.");
+            return {
+                success: true,
+                message: "If the email is registered and unverified, a new verification email has been sent.",
+            };
         }
 
         if (user.emailVerified) {
@@ -316,6 +322,10 @@ export const UserServices = {
                 profileImage: picture || "",
                 emailVerified: true,
             });
+        } else {
+            if (!user.emailVerified) {
+                await UserRepository.updateUser(user.id, { emailVerified: true });
+            }
         }
 
         let account = await UserRepository.findAccountByProvider(AuthProvider.GOOGLE, sub);
@@ -329,18 +339,21 @@ export const UserServices = {
         }
 
         const accessToken = generateAccessToken({ userId: user.id });
-        const refreshToken = generateRefreshToken({ userId: user.id });
+        const refreshExpiresAt = new Date(Date.now() + parseDurationMs(env.JWT_REFRESH_EXPIRATION));
 
-        const refreshTokenHash = await hashPassword(refreshToken);
-        const refreshExpiresAt = new Date(Date.now() + parseInt(env.JWT_REFRESH_EXPIRATION) * 60 * 60 * 1000);
-
-        await UserRepository.createSession({
+        // Create the session first so we have its ID to embed in the refresh token
+        const session = await UserRepository.createSession({
             user: { connect: { id: user.id } },
-            refreshTokenHash,
+            refreshTokenHash: "pending",
             userAgent: data.agent,
             ipAddress: data.ip,
             expiresAt: refreshExpiresAt,
         });
+
+        const refreshToken = generateRefreshToken({ userId: user.id, sessionId: session.id });
+        const refreshTokenHash = await hashPassword(refreshToken);
+
+        await UserRepository.updateSession(session.id, { refreshTokenHash });
 
         return {
             success: true,
@@ -392,7 +405,7 @@ export const UserServices = {
     },
 
     async confirmAvatarUpload(userId: string, fileKey: string) {
-        const expectedPrefix = `avatars/${userId}/`;
+        const expectedPrefix = `users/${userId}/`;
 
         if (!fileKey.startsWith(expectedPrefix)) {
             throw new ForbiddenException("Invalid avatar key.");
@@ -429,14 +442,19 @@ export const UserServices = {
 
     async logout(refreshToken: string) {
 
-        const refreshTokenHash = await hashPassword(refreshToken);
-        const session = await UserRepository.findSessionByRefreshTokenHash(refreshTokenHash);
-
-        if (!session) {
-            throw new UnauthorizedException("Invalid or expired refresh token.");
+        const payload = verifyRefreshToken(refreshToken);
+        if (!payload) {
+            return { success: true, message: "Logout successful." };
         }
 
-        await UserRepository.deleteSession(session.id);
+        const session = await UserRepository.findSessionById(payload.sessionId);
+
+        if (session) {
+            const isValid = await comparePassword(refreshToken, session.refreshTokenHash);
+            if (isValid) {
+                await UserRepository.deleteSession(session.id);
+            }
+        }
 
         return {
             success: true,
@@ -478,27 +496,34 @@ export const UserServices = {
             throw new UnauthorizedException("No refresh token provided.");
         }
 
-        const session = await UserRepository.findSessionByRefreshTokenHash(await hashPassword(refreshToken));
+        const payload = verifyRefreshToken(refreshToken);
+        if (!payload) {
+            throw new UnauthorizedException("Invalid or expired refresh token.");
+        }
+
+        const session = await UserRepository.findSessionById(payload.sessionId);
 
         if (!session || new Date() > session.expiresAt) {
             throw new UnauthorizedException("Invalid or expired refresh token.");
         }
 
-        const user = await UserRepository.findUserById(session.userId);
+        const isValid = await comparePassword(refreshToken, session.refreshTokenHash);
+        if (!isValid) {
+            throw new UnauthorizedException("Invalid or expired refresh token.");
+        }
 
+        const user = await UserRepository.findUserById(payload.userId);
         if (!user) {
             throw new UnauthorizedException("User not found.");
         }
 
         const newAccessToken = generateAccessToken({ userId: user.id });
-        const newRefreshToken = generateRefreshToken({ userId: user.id });
+        const newRefreshToken = generateRefreshToken({ userId: user.id, sessionId: session.id });
+        const newRefreshTokenHash = await hashPassword(newRefreshToken);
+        const refreshExpiresAt = new Date(Date.now() + parseDurationMs(env.JWT_REFRESH_EXPIRATION));
 
-        const refreshTokenHash = await hashPassword(newRefreshToken);
-        const refreshExpiresAt = new Date(Date.now() + parseInt(env.JWT_REFRESH_EXPIRATION) * 60 * 60 * 1000);
-
-        // Update the existing session
         await UserRepository.updateSession(session.id, {
-            refreshTokenHash,
+            refreshTokenHash: newRefreshTokenHash,
             expiresAt: refreshExpiresAt,
             ipAddress: ip,
             userAgent: agent,
