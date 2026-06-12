@@ -89,6 +89,14 @@ export const UserRepository = {
         return await prisma.passwordResetToken.findUnique({ where: { userId } });
     },
 
+    async findPasswordResetTokenByToken(token: string) {
+        return await prisma.passwordResetToken.findUnique({ where: { token } });
+    },
+
+    async findSessionById(id: string) {
+        return await prisma.session.findUnique({ where: { id } });
+    },
+
     async deletePasswordResetToken(id: string) {
         return await prisma.passwordResetToken.delete({ where: { id } });
     },

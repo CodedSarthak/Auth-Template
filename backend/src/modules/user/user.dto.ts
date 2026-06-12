@@ -10,6 +10,8 @@ import {
     resendVerificationSchema,
     updateProfileSchema,
     generateAvatarUploadUrlSchema,
+    confirmAvatarUploadSchema,
+    logoutSpecificSessionSchema,
 } from "./user.validation.js";
 
 export type RegisterDto = z.infer<typeof registerSchema>;
@@ -21,4 +23,6 @@ export type VerifyEmailDto = z.infer<typeof verifyEmailSchema>;
 export type ResendVerificationDto = z.infer<typeof resendVerificationSchema>;
 export type UpdateProfileDto = z.infer<typeof updateProfileSchema>;
 export type GenerateAvatarUploadUrlDto = z.infer<typeof generateAvatarUploadUrlSchema>;
+export type ConfirmAvatarUploadDto = z.infer<typeof confirmAvatarUploadSchema>;
+export type LogoutSpecificSessionDto = z.infer<typeof logoutSpecificSessionSchema>;
 

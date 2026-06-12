@@ -50,3 +50,11 @@ export const verifyAccessToken = (token: string): TokenPayload | null => {
         return null;
     }
 };
+
+export const verifyRefreshToken = (token: string): TokenPayload | null => {
+    try {
+        return jwt.verify(token, REFRESH_TOKEN_SECRET as string) as TokenPayload;
+    } catch (error) {
+        return null;
+    }
+};

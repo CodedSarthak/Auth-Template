@@ -1,5 +1,5 @@
 import { UserRepository } from "./user.repository.js";
-import { RegisterDto, LoginDto, GoogleLoginDto, ForgotPasswordDto, UpdateProfileDto, GenerateAvatarUploadUrlDto } from "./user.dto.js";
+import { RegisterDto, LoginDto, GoogleLoginDto, ForgotPasswordDto, UpdateProfileDto, GenerateAvatarUploadUrlDto, ResetPasswordDto, ResendVerificationDto } from "./user.dto.js";
 import { validateMimeType } from "../../utils/validateMime.js";
 import { generateFileKey } from "../../utils/s3FileKey.js";
 import { generateUploadPresignedUrl, deleteObject, checkObjectExists } from "../../utils/s3Utils.js";
@@ -190,6 +190,109 @@ export const UserServices = {
         };
     },
 
+    async resetPassword(data: ResetPasswordDto) {
+        const resetToken = await UserRepository.findPasswordResetTokenByToken(data.token);
+
+        if (!resetToken) {
+            throw new BadRequestException("Invalid or expired password reset token.");
+        }
+
+        if (new Date() > resetToken.expiresAt) {
+            await UserRepository.deletePasswordResetToken(resetToken.id);
+            throw new BadRequestException("Password reset token has expired. Please request a new one.");
+        }
+
+        const passwordHash = await hashPassword(data.password);
+
+        await UserRepository.updateUser(resetToken.userId, {
+            passwordHash,
+        });
+
+        await UserRepository.deletePasswordResetToken(resetToken.id);
+
+        return {
+            success: true,
+            message: "Password has been successfully reset.",
+        };
+    },
+
+    async resendVerification(data: ResendVerificationDto) {
+        const user = await UserRepository.findUserByEmail(data.email);
+
+        if (!user) {
+            throw new NotFoundException("User not found.");
+        }
+
+        if (user.emailVerified) {
+            throw new ConflictException("Email is already verified.");
+        }
+
+        const existingToken = await UserRepository.findEmailVerificationToken(user.id);
+        if (existingToken) {
+            await UserRepository.deleteEmailVerificationToken(existingToken.id);
+        }
+
+        const token = generateRandomToken();
+        const expirationMinutes = parseInt(env.TOKEN_EXPIRATION_TIME, 10) || 1440;
+        const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
+
+        await UserRepository.createEmailVerificationToken({
+            token,
+            userId: user.id,
+            expiresAt,
+        });
+
+        const verificationLink = `${env.FRONTEND_URL}/verify-email?token=${token}`;
+
+        const htmlContent = `
+            <h2>Welcome to our platform!</h2>
+            <p>Please verify your email address by clicking the link below:</p>
+            <a href="${verificationLink}">Verify Email</a>
+            <p>This link will expire in ${expirationMinutes} minutes.</p>
+        `;
+
+        await sendEmail(user.email, "Verify your email", htmlContent);
+
+        return {
+            success: true,
+            message: "A new verification email has been sent.",
+        };
+    },
+
+    async getActiveSessions(userId: string) {
+        const sessions = await UserRepository.findActiveSessions(userId);
+
+        return {
+            success: true,
+            sessions: sessions.map(s => ({
+                id: s.id,
+                userAgent: s.userAgent,
+                ipAddress: s.ipAddress,
+                lastUsedAt: s.lastUsedAt,
+                createdAt: s.createdAt,
+            }))
+        };
+    },
+
+    async logoutSpecificSession(userId: string, sessionId: string) {
+        const session = await UserRepository.findSessionById(sessionId);
+
+        if (!session) {
+            throw new NotFoundException("Session not found.");
+        }
+
+        if (session.userId !== userId) {
+            throw new ForbiddenException("You do not have permission to delete this session.");
+        }
+
+        await UserRepository.deleteSession(sessionId);
+
+        return {
+            success: true,
+            message: "Session successfully logged out.",
+        };
+    },
+
     async googleLogin(data: GoogleLoginDto) {
 
         const ticket = await googleClient.verifyIdToken({
@@ -351,6 +454,62 @@ export const UserServices = {
         };
     },
 
+    async getCurrentUser(userId: string) {
 
+        const user = await UserRepository.findUserById(userId);
+        if (!user) {
+            throw new NotFoundException("User not found.");
+        }
+        return {
+            success: true,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                profileImage: user.profileImage,
+                emailVerified: user.emailVerified,
+            }
+        };
+    },
+
+    async refreshToken(refreshToken: string, ip: string, agent: string) {
+
+        if (!refreshToken) {
+            throw new UnauthorizedException("No refresh token provided.");
+        }
+
+        const session = await UserRepository.findSessionByRefreshTokenHash(await hashPassword(refreshToken));
+
+        if (!session || new Date() > session.expiresAt) {
+            throw new UnauthorizedException("Invalid or expired refresh token.");
+        }
+
+        const user = await UserRepository.findUserById(session.userId);
+
+        if (!user) {
+            throw new UnauthorizedException("User not found.");
+        }
+
+        const newAccessToken = generateAccessToken({ userId: user.id });
+        const newRefreshToken = generateRefreshToken({ userId: user.id });
+
+        const refreshTokenHash = await hashPassword(newRefreshToken);
+        const refreshExpiresAt = new Date(Date.now() + parseInt(env.JWT_REFRESH_EXPIRATION) * 60 * 60 * 1000);
+
+        // Update the existing session
+        await UserRepository.updateSession(session.id, {
+            refreshTokenHash,
+            expiresAt: refreshExpiresAt,
+            ipAddress: ip,
+            userAgent: agent,
+            lastUsedAt: new Date(),
+        });
+
+        return {
+            success: true,
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+        };
+    },
 
 };

@@ -102,3 +102,11 @@ export const generateAvatarUploadUrlSchema = z.object({
         "image/webp"
     ])
 });
+
+export const confirmAvatarUploadSchema = z.object({
+    fileKey: z.string().min(1, "File key is required")
+});
+
+export const logoutSpecificSessionSchema = z.object({
+    sessionId: z.string().min(1, "Session ID is required")
+});
