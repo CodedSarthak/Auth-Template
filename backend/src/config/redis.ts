@@ -1,6 +1,8 @@
 import { Redis } from "ioredis";
 
-export const redis = new Redis(process.env.REDIS_URL!, {
+import { env } from "./getEnvVars.js";
+
+export const redis = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: 3,
   enableReadyCheck: true,
 
