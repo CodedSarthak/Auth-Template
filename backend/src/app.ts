@@ -16,12 +16,12 @@ app.use(helmet());
 app.use(requestLogger);
 app.use(globalRateLimiter);
 
-app.use(
-    cors({
-        origin: env.FRONTEND_URL,
-        credentials: true,
-    })
-);
+// app.use(
+//     cors({
+//         origin: env.FRONTEND_URL,
+//         credentials: true,
+//     })
+// );
 
 app.use(express.json());
 app.use(cookieParser());
