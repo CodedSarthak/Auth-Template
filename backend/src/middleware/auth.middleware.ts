@@ -6,8 +6,12 @@ import { verifyAccessToken } from '../utils/jwt.js';
 
 export const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
 
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
+    let token = req.cookies?.accessToken;
+
+    if (!token) {
+        const authHeader = req.headers['authorization'];
+        token = authHeader && authHeader.split(' ')[1];
+    }
 
     if (!token) {
         return res.status(401).json({ message: 'Access token missing' });

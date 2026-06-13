@@ -12,11 +12,13 @@ import userRoutes from "./modules/user/user.routes.js";
 
 export const app = express();
 
+// app.set("trust proxy", 1); // Uncomment this if backend is behind any proxy like Nginx
+
 app.use(helmet());
 app.use(requestLogger);
 app.use(globalRateLimiter);
 
-// app.use(
+// app.use( // Uncomment this when you have frontend url
 //     cors({
 //         origin: env.FRONTEND_URL,
 //         credentials: true,
