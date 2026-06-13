@@ -25,7 +25,9 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1067.0",
     "@aws-sdk/s3-request-presigner": "^3.1067.0",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@types/pg": "^8.20.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
@@ -35,6 +37,7 @@
     "helmet": "^8.2.0",
     "ioredis": "^5.11.1",
     "jsonwebtoken": "^9.0.3",
+    "pg": "^8.21.0",
     "pino": "^10.3.1",
     "pino-pretty": "^13.1.3",
     "rate-limiter-flexible": "^11.2.0",
