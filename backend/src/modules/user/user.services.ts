@@ -68,7 +68,7 @@ export const UserServices = {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                accounts: AuthProvider.LOCAL,
+                accounts: [AuthProvider.LOCAL],
             }
         };
     },
@@ -216,6 +216,8 @@ export const UserServices = {
 
         await UserRepository.deletePasswordResetToken(resetToken.id);
 
+        await UserRepository.deleteAllUserSessions(resetToken.userId);
+
         return {
             success: true,
             message: "Password has been successfully reset.",
@@ -233,7 +235,10 @@ export const UserServices = {
         }
 
         if (user.emailVerified) {
-            throw new ConflictException("Email is already verified.");
+            return {
+                success: true,
+                message: "If the email is registered and unverified, a new verification email has been sent.",
+            };
         }
 
         const existingToken = await UserRepository.findEmailVerificationToken(user.id);

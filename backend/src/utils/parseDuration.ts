@@ -11,10 +11,11 @@ export function parseDurationMs(duration: string): number {
     }
 
     switch (unit) {
+        case "w": return value * 7 * 24 * 60 * 60 * 1000;
         case "d": return value * 24 * 60 * 60 * 1000;
         case "h": return value * 60 * 60 * 1000;
         case "m": return value * 60 * 1000;
         case "s": return value * 1000;
-        default:  return value;
+        default: throw new Error(`Unknown duration unit "${unit}" in "${duration}". Use w, d, h, m, or s.`);
     }
 }
