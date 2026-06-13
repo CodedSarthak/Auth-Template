@@ -522,7 +522,13 @@ export const UserServices = {
         }
 
         const isValid = await comparePassword(refreshToken, session.refreshTokenHash);
+
         if (!isValid) {
+            await UserRepository.deleteSession(session.id);
+            logger.warn(
+                { sessionId: session.id, userId: payload.userId },
+                "Refresh token reuse detected — session terminated."
+            );
             throw new UnauthorizedException("Invalid or expired refresh token.");
         }
 
