@@ -1,4 +1,5 @@
 import { UserRepository } from "./user.repository.js";
+import { prisma } from "../../config/prisma.js";
 import { RegisterDto, LoginDto, GoogleLoginDto, ForgotPasswordDto, UpdateProfileDto, GenerateAvatarUploadUrlDto, ResetPasswordDto, ResendVerificationDto } from "./user.dto.js";
 import { validateMimeType } from "../../utils/validateMime.js";
 import { generateFileKey } from "../../utils/s3FileKey.js";
@@ -23,28 +24,30 @@ export const UserServices = {
         }
 
         const passwordHash = await hashPassword(data.password);
-
-        const user = await UserRepository.createUser({
-            name: data.name,
-            email: data.email,
-            passwordHash,
-        });
-
-        const account = await UserRepository.createAccount({
-            provider: AuthProvider.LOCAL,
-            providerAccountId: user.id,
-            user: { connect: { id: user.id } },
-        });
-
         const token = generateRandomToken();
-
         const expirationMinutes = parseInt(env.TOKEN_EXPIRATION_TIME, 10) || 1440;
         const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
 
-        await UserRepository.createEmailVerificationToken({
-            token,
-            userId: user.id,
-            expiresAt,
+        const user = await prisma.$transaction(async (tx) => {
+            const newUser = await UserRepository.createUser({
+                name: data.name,
+                email: data.email,
+                passwordHash,
+            }, tx);
+
+            const account = await UserRepository.createAccount({
+                provider: AuthProvider.LOCAL,
+                providerAccountId: newUser.id,
+                user: { connect: { id: newUser.id } },
+            }, tx);
+
+            await UserRepository.createEmailVerificationToken({
+                token,
+                userId: newUser.id,
+                expiresAt,
+            }, tx);
+
+            return newUser;
         });
 
         const verificationLink = `${env.FRONTEND_URL}/verify-email?token=${token}`;
@@ -65,7 +68,7 @@ export const UserServices = {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                accounts: account.provider,
+                accounts: AuthProvider.LOCAL,
             }
         };
     },

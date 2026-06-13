@@ -28,42 +28,44 @@ vi.mock("../../src/middleware/requestLogger.js", () => ({
     requestLogger: (_req: any, _res: any, next: any) => next(),
 }));
 
-vi.mock("../../src/config/prisma.js", () => ({
-    prisma: {
+vi.mock("../../src/config/prisma.js", () => {
+    const mockPrisma = {
+        $transaction: vi.fn(async (cb) => await cb(mockPrisma)),
         user: {
-            findUnique:  vi.fn(),
-            create:      vi.fn(),
-            update:      vi.fn(),
-            delete:      vi.fn(),
+            findUnique: vi.fn(),
+            create: vi.fn(),
+            update: vi.fn(),
+            delete: vi.fn(),
         },
         account: {
-            findUnique:  vi.fn(),
-            create:      vi.fn(),
+            findUnique: vi.fn(),
+            create: vi.fn(),
         },
         session: {
-            create:      vi.fn(),
-            findUnique:  vi.fn(),
-            findMany:    vi.fn(),
-            update:      vi.fn(),
-            delete:      vi.fn(),
-            deleteMany:  vi.fn(),
+            create: vi.fn(),
+            findUnique: vi.fn(),
+            findMany: vi.fn(),
+            update: vi.fn(),
+            delete: vi.fn(),
+            deleteMany: vi.fn(),
         },
         emailVerificationToken: {
-            create:      vi.fn(),
-            findUnique:  vi.fn(),
-            delete:      vi.fn(),
+            create: vi.fn(),
+            findUnique: vi.fn(),
+            delete: vi.fn(),
         },
         passwordResetToken: {
-            create:      vi.fn(),
-            findUnique:  vi.fn(),
-            delete:      vi.fn(),
+            findUnique: vi.fn(),
+            create: vi.fn(),
+            delete: vi.fn(),
         },
-    },
-}));
+    };
+    return { prisma: mockPrisma, DB: {} };
+});
 
 // Deterministic bcrypt — keeps tests fast and predictable
 vi.mock("../../src/utils/bcrypt.js", () => ({
-    hashPassword:    vi.fn(async (p: string) => `hashed::${p}`),
+    hashPassword: vi.fn(async (p: string) => `hashed::${p}`),
     comparePassword: vi.fn(async (plain: string, hash: string) => hash === `hashed::${plain}`),
 }));
 
@@ -77,8 +79,8 @@ vi.mock("../../src/config/googleClient.js", () => ({
 
 vi.mock("../../src/utils/s3Utils.js", () => ({
     generateUploadPresignedUrl: vi.fn(),
-    checkObjectExists:          vi.fn(),
-    deleteObject:               vi.fn().mockResolvedValue(undefined),
+    checkObjectExists: vi.fn(),
+    deleteObject: vi.fn().mockResolvedValue(undefined),
 }));
 
 // ─── Actual imports (after mocks are established) ─────────────────────────────
@@ -96,42 +98,42 @@ const BASE = "/api/auth";
 
 /** A verified local user as would come from prisma.user.findUnique */
 const mockUser = (overrides: Record<string, any> = {}) => ({
-    id:            "user-123",
-    name:          "John Doe",
-    email:         "john@example.com",
-    passwordHash:  "hashed::Secure@123",
+    id: "user-123",
+    name: "John Doe",
+    email: "john@example.com",
+    passwordHash: "hashed::Secure@123",
     emailVerified: true,
-    profileImage:  null,
-    createdAt:     new Date("2024-01-01"),
-    updatedAt:     new Date("2024-01-01"),
+    profileImage: null,
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
     ...overrides,
 });
 
 const mockSession = (overrides: Record<string, any> = {}) => ({
-    id:               "session-123",
-    userId:           "user-123",
+    id: "session-123",
+    userId: "user-123",
     refreshTokenHash: "",        // caller must set the correct hash
-    userAgent:        "jest",
-    ipAddress:        "127.0.0.1",
-    createdAt:        new Date(),
-    expiresAt:        new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-    lastUsedAt:       new Date(),
+    userAgent: "jest",
+    ipAddress: "127.0.0.1",
+    createdAt: new Date(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    lastUsedAt: new Date(),
     ...overrides,
 });
 
 const mockEmailToken = (overrides: Record<string, any> = {}) => ({
-    id:        "token-123",
-    token:     "valid-email-token",
-    userId:    "user-123",
+    id: "token-123",
+    token: "valid-email-token",
+    userId: "user-123",
     expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     createdAt: new Date(),
     ...overrides,
 });
 
 const mockPasswordResetToken = (overrides: Record<string, any> = {}) => ({
-    id:        "reset-token-123",
-    token:     "valid-reset-token",
-    userId:    "user-123",
+    id: "reset-token-123",
+    token: "valid-reset-token",
+    userId: "user-123",
     expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     createdAt: new Date(),
     ...overrides,
@@ -412,8 +414,8 @@ describe("POST /api/auth/login", () => {
 describe("POST /api/auth/login/google", () => {
     const googlePayload = {
         email: "jane@gmail.com",
-        name:  "Jane Doe",
-        sub:   "google-sub-123",
+        name: "Jane Doe",
+        sub: "google-sub-123",
         picture: "https://lh3.googleusercontent.com/photo.jpg",
     };
 
