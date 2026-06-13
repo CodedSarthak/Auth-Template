@@ -1,6 +1,7 @@
 /**
- * Parses a JWT-style duration string (e.g. "7d", "15m", "2h") into milliseconds.
- * Falls back to treating the value as raw milliseconds if no unit suffix is found.
+ * Parses a duration string (e.g. "7d", "2w", "15m", "2h", "30s") into milliseconds.
+ * Supported units: w (weeks), d (days), h (hours), m (minutes), s (seconds).
+ * Throws if the value is not a number or the unit is unrecognised.
  */
 export function parseDurationMs(duration: string): number {
     const unit = duration.slice(-1);

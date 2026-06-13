@@ -25,8 +25,8 @@ export const UserServices = {
 
         const passwordHash = await hashPassword(data.password);
         const token = generateRandomToken();
-        const expirationMinutes = parseInt(env.TOKEN_EXPIRATION_TIME, 10) || 1440;
-        const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
+        const expirationMs = parseDurationMs(env.TOKEN_EXPIRATION_TIME);
+        const expiresAt = new Date(Date.now() + expirationMs);
 
         const user = await prisma.$transaction(async (tx) => {
             const newUser = await UserRepository.createUser({
@@ -56,7 +56,7 @@ export const UserServices = {
             <h2>Welcome to our platform!</h2>
             <p>Please verify your email address by clicking the link below:</p>
             <a href="${verificationLink}">Verify Email</a>
-            <p>This link will expire in ${expirationMinutes} minutes.</p>
+            <p>This link will expire in ${env.TOKEN_EXPIRATION_TIME}.</p>
         `;
 
         await sendEmail(user.email, "Verify your email", htmlContent);
@@ -171,8 +171,8 @@ export const UserServices = {
         }
 
         const token = generateRandomToken();
-        const expirationMinutes = parseInt(env.TOKEN_EXPIRATION_TIME, 10) || 1440;
-        const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
+        const expirationMs = parseDurationMs(env.TOKEN_EXPIRATION_TIME);
+        const expiresAt = new Date(Date.now() + expirationMs);
 
         await UserRepository.createPasswordResetToken({
             token,
@@ -185,7 +185,7 @@ export const UserServices = {
             <h2>Reset Your Password</h2>
             <p>Please click the link below to reset your password:</p>
             <a href="${resetLink}">Reset Password</a>
-            <p>This link will expire in ${expirationMinutes} minutes.</p>
+            <p>This link will expire in ${env.TOKEN_EXPIRATION_TIME}.</p>
         `;
 
         await sendEmail(user.email, "Reset your password", htmlContent);
@@ -247,8 +247,8 @@ export const UserServices = {
         }
 
         const token = generateRandomToken();
-        const expirationMinutes = parseInt(env.TOKEN_EXPIRATION_TIME, 10) || 1440;
-        const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
+        const expirationMs = parseDurationMs(env.TOKEN_EXPIRATION_TIME);
+        const expiresAt = new Date(Date.now() + expirationMs);
 
         await UserRepository.createEmailVerificationToken({
             token,
@@ -262,7 +262,7 @@ export const UserServices = {
             <h2>Welcome to our platform!</h2>
             <p>Please verify your email address by clicking the link below:</p>
             <a href="${verificationLink}">Verify Email</a>
-            <p>This link will expire in ${expirationMinutes} minutes.</p>
+            <p>This link will expire in ${env.TOKEN_EXPIRATION_TIME}.</p>
         `;
 
         await sendEmail(user.email, "Verify your email", htmlContent);
